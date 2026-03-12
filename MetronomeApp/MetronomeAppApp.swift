@@ -1,0 +1,48 @@
+//
+//  MetronomeAppApp.swift
+//  MetronomeApp
+//
+//  Created by Daniel Butler on 12/21/25.
+//
+
+import SwiftUI
+import ActivityKit
+import os
+
+private let logger = Logger(subsystem: "com.danielbutler.MetronomeApp", category: "AppLifecycle")
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func applicationWillTerminate(_ application: UIApplication) {
+        logger.info("applicationWillTerminate — cleaning up")
+        let activities = Activity<MetronomeActivityAttributes>.activities
+        if !activities.isEmpty {
+            let semaphore = DispatchSemaphore(value: 0)
+            // Must use .detached — a regular Task inherits the main actor
+            // context, deadlocking with the semaphore blocking the main thread.
+            Task.detached {
+                for activity in activities {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+                semaphore.signal()
+            }
+            semaphore.wait(timeout: .now() + 2)
+        }
+        AudioSessionManager.shared.deactivate()
+    }
+}
+
+@main
+struct MetronomeAppApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    init() {
+        // Initialize audio session for background playback
+        _ = AudioSessionManager.shared
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}

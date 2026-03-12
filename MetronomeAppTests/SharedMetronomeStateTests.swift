@@ -52,19 +52,32 @@ final class SharedMetronomeStateTests: XCTestCase {
         XCTAssertEqual(state.volume, 0.8, accuracy: 0.001)
     }
 
-    // MARK: - isPlaying should NOT be in SharedMetronomeState
+    // MARK: - isPlaying (cross-process state — must be shared)
 
-    func testIsPlayingNotStoredInUserDefaults() {
-        // isPlaying is transient command state, not a preference.
-        // After refactoring, SharedMetronomeState should not have an isPlaying property.
-        // Setting isPlaying via the old key should not affect the state object.
-        testDefaults.set(true, forKey: "isPlaying")
-        // SharedMetronomeState should not expose isPlaying at all.
-        // This test verifies the key is not read by the state object.
-        // If isPlaying property still exists, this test documents that it should be removed.
-        let mirror = Mirror(reflecting: state!)
-        let propertyNames = mirror.children.compactMap { $0.label }
-        XCTAssertFalse(propertyNames.contains("isPlaying"),
-                       "SharedMetronomeState should not store isPlaying — it's a command, not a preference")
+    func testIsPlayingDefaultsToFalse() {
+        XCTAssertFalse(state.isPlaying)
+    }
+
+    func testIsPlayingPersistsValue() {
+        state.isPlaying = true
+        XCTAssertTrue(state.isPlaying)
+    }
+
+    func testIsPlayingRoundTripsViaUserDefaults() {
+        state.isPlaying = true
+        let value = testDefaults.bool(forKey: "isPlaying")
+        XCTAssertTrue(value, "isPlaying must be in UserDefaults so widget intents can read it cross-process")
+    }
+
+    func testIsPlayingSurvivesCrossProcessRead() {
+        // Simulates the widget extension reading isPlaying after the main app set it.
+        // This is the fix for the bug where IncrementBPMIntent read isPlaying from
+        // Activity.activities (stale, defaults to false) and overwrote the correct state.
+        state.isPlaying = true
+
+        // Read directly from UserDefaults (as another process would)
+        testDefaults.synchronize()
+        XCTAssertTrue(testDefaults.bool(forKey: "isPlaying"),
+                      "isPlaying must be readable from another process via shared UserDefaults")
     }
 }

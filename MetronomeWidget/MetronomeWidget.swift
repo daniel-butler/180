@@ -53,28 +53,16 @@ struct MetronomeLiveActivity: Widget {
                 }
                 .buttonStyle(.plain)
 
-                // Center: SPM display + play/stop toggle
-                if context.state.isPlaying {
-                    Button(intent: StopMetronomeIntent()) {
-                        SPMToggleContent(bpm: context.state.bpm, isPlaying: true, bpmFontSize: 34, iconSize: 16)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                            .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 72)
-                } else {
-                    Button(intent: StartMetronomeIntent()) {
-                        SPMToggleContent(bpm: context.state.bpm, isPlaying: false, bpmFontSize: 34, iconSize: 16)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                            .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 72)
+                // Center: SPM display + play/stop toggle (single intent, visual changes with state)
+                Button(intent: ToggleMetronomeIntent()) {
+                    SPMToggleContent(bpm: context.state.bpm, isPlaying: context.state.isPlaying, bpmFontSize: 34, iconSize: 16)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                        .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .frame(height: 72)
 
                 // Plus button
                 Button(intent: IncrementBPMIntent()) {
@@ -108,27 +96,15 @@ struct MetronomeLiveActivity: Widget {
                         .buttonStyle(.plain)
 
                         // Center: SPM display + play/stop toggle
-                        if context.state.isPlaying {
-                            Button(intent: StopMetronomeIntent()) {
-                                SPMToggleContent(bpm: context.state.bpm, isPlaying: true, bpmFontSize: 26, iconSize: 13)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .contentShape(Rectangle())
-                                    .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
-                            }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                        } else {
-                            Button(intent: StartMetronomeIntent()) {
-                                SPMToggleContent(bpm: context.state.bpm, isPlaying: false, bpmFontSize: 26, iconSize: 13)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .contentShape(Rectangle())
-                                    .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
-                            }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
+                        Button(intent: ToggleMetronomeIntent()) {
+                            SPMToggleContent(bpm: context.state.bpm, isPlaying: context.state.isPlaying, bpmFontSize: 26, iconSize: 13)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .contentShape(Rectangle())
+                                .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
                         }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
 
                         // Plus button
                         Button(intent: IncrementBPMIntent()) {
