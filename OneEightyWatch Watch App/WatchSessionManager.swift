@@ -87,7 +87,19 @@ extension WatchSessionManager: WCSessionDelegate {
             } else {
                 logger.info("WCSession activated — state=\(activationState.rawValue)")
                 self.isReachable = session.isReachable
+                // Load last known state from application context (persists across launches)
+                let context = session.receivedApplicationContext
+                if !context.isEmpty {
+                    logger.info("Restoring state from applicationContext")
+                    self.applyState(context)
+                }
             }
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        Task { @MainActor in
+            self.applyState(applicationContext)
         }
     }
 

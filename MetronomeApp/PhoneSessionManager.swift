@@ -37,21 +37,25 @@ final class PhoneSessionManager: NSObject {
               WCSession.default.isPaired,
               WCSession.default.isWatchAppInstalled else { return }
 
-        let message: [String: Any] = [
+        let state: [String: Any] = [
             "bpm": engine.bpm,
             "isPlaying": engine.isPlaying
         ]
 
-        // Use transferUserInfo for reliable delivery even if watch isn't reachable right now.
-        // Use sendMessage for immediate delivery when reachable.
+        // Always update application context — this persists and is available
+        // immediately when the watch app launches via receivedApplicationContext.
+        do {
+            try WCSession.default.updateApplicationContext(state)
+        } catch {
+            logger.error("updateApplicationContext failed: \(error.localizedDescription)")
+        }
+
+        // Also send immediate message when reachable for live updates.
         if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: nil) { error in
+            WCSession.default.sendMessage(state, replyHandler: nil) { error in
                 logger.error("sendMessage failed: \(error.localizedDescription)")
             }
-            logger.info("Sent state to watch via message — bpm=\(self.engine.bpm), isPlaying=\(self.engine.isPlaying)")
-        } else {
-            WCSession.default.transferUserInfo(message)
-            logger.info("Queued state to watch via transferUserInfo — bpm=\(self.engine.bpm), isPlaying=\(self.engine.isPlaying)")
+            logger.info("Sent state to watch — bpm=\(self.engine.bpm), isPlaying=\(self.engine.isPlaying)")
         }
     }
 }
