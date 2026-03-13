@@ -35,6 +35,7 @@ final class MetronomeEngine {
     private var tickTimer: Timer?
     private var bpmDebounceTimer: Timer?
     private var pendingBPM: Int?
+    private var wasPlayingBeforeInterruption: Bool = false
 
     // MARK: - Cross-Process
 
@@ -61,10 +62,12 @@ final class MetronomeEngine {
 
         setupAudioEngine()
         startObservingSharedState()
+        startObservingInterruptions()
     }
 
     func teardown() {
         logger.info("teardown — cleaning up audio and observer")
+        stopObservingInterruptions()
         stopObservingSharedState()
         cleanupAudio()
     }
@@ -141,13 +144,9 @@ final class MetronomeEngine {
     // MARK: - Audio Engine Setup
 
     private func setupAudioEngine() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
-        } catch {
-            logger.error("Failed to configure audio session: \(error.localizedDescription)")
-        }
+        // Audio session is managed by AudioSessionManager.shared (with .mixWithOthers).
+        // Do NOT reconfigure it here — that would strip .mixWithOthers and kill other audio.
+        AudioSessionManager.shared.activate()
 
         audioEngine = AVAudioEngine()
         playerNode = AVAudioPlayerNode()
@@ -303,5 +302,54 @@ final class MetronomeEngine {
         sharedState.isPlaying = false
         stopMetronome()
         LiveActivityManager.shared.updateActivity(bpm: bpm, isPlaying: false)
+    }
+
+    // MARK: - Audio Interruption Handling
+
+    private func startObservingInterruptions() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInterruptionBegan),
+            name: .audioInterruptionBegan,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInterruptionEnded),
+            name: .audioInterruptionEnded,
+            object: nil
+        )
+    }
+
+    private func stopObservingInterruptions() {
+        NotificationCenter.default.removeObserver(self, name: .audioInterruptionBegan, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .audioInterruptionEnded, object: nil)
+    }
+
+    @objc private func handleInterruptionBegan() {
+        Task { @MainActor in
+            logger.info("Audio interrupted — wasPlaying=\(self.isPlaying)")
+            self.wasPlayingBeforeInterruption = self.isPlaying
+            guard self.isPlaying else { return }
+            self.isPlaying = false
+            self.sharedState.isPlaying = false
+            self.stopMetronome()
+            LiveActivityManager.shared.updateActivity(bpm: self.bpm, isPlaying: false)
+            self.onStateChange?()
+        }
+    }
+
+    @objc private func handleInterruptionEnded() {
+        Task { @MainActor in
+            logger.info("Audio interruption ended — wasPlayingBefore=\(self.wasPlayingBeforeInterruption)")
+            guard self.wasPlayingBeforeInterruption else { return }
+            self.wasPlayingBeforeInterruption = false
+            AudioSessionManager.shared.activate()
+            self.isPlaying = true
+            self.sharedState.isPlaying = true
+            self.startMetronome()
+            LiveActivityManager.shared.updateActivity(bpm: self.bpm, isPlaying: true)
+            self.onStateChange?()
+        }
     }
 }

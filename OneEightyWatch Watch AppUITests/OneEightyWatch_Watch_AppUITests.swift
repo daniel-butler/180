@@ -9,33 +9,84 @@ import XCTest
 
 final class OneEightyWatch_Watch_AppUITests: XCTestCase {
 
+    private var app: XCUIApplication!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launch()
+    }
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    // MARK: - Page 1: SPM Display
+
+    @MainActor
+    func testLaunchShowsBPM() throws {
+        let bpm = app.staticTexts["bpmDisplay"]
+        XCTAssertTrue(bpm.waitForExistence(timeout: 5))
+        XCTAssertEqual(bpm.label, "180")
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+    func testLaunchShowsSPMLabel() throws {
+        XCTAssertTrue(app.staticTexts["SPM"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - Page 2: Controls (swipe to reach)
+
+    @MainActor
+    func testSwipeToControlsPage() throws {
+        // Page 1 should show BPM
+        let bpm = app.staticTexts["bpmDisplay"]
+        XCTAssertTrue(bpm.waitForExistence(timeout: 5))
+
+        // Swipe up to page 2 (vertical page style)
+        app.swipeUp()
+
+        // Controls page should have play button
+        let playButton = app.buttons["togglePlayback"]
+        XCTAssertTrue(playButton.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testStartStopFromControlsPage() throws {
+        let bpm = app.staticTexts["bpmDisplay"]
+        XCTAssertTrue(bpm.waitForExistence(timeout: 5))
+
+        app.swipeUp()
+
+        let toggle = app.buttons["togglePlayback"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+
+        // Tap play — note: without phone connected this won't actually start,
+        // but the UI should still respond to the tap
+        toggle.tap()
+    }
+
+    @MainActor
+    func testIncrementDecrementOnControlsPage() throws {
+        let bpm = app.staticTexts["bpmDisplay"]
+        XCTAssertTrue(bpm.waitForExistence(timeout: 5))
+
+        app.swipeUp()
+
+        let increment = app.buttons["incrementBPM"]
+        let decrement = app.buttons["decrementBPM"]
+        XCTAssertTrue(increment.waitForExistence(timeout: 3))
+        XCTAssertTrue(decrement.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testSwipeBackToSPMPage() throws {
+        let bpm = app.staticTexts["bpmDisplay"]
+        XCTAssertTrue(bpm.waitForExistence(timeout: 5))
+
+        // Swipe to controls
+        app.swipeUp()
+        let toggle = app.buttons["togglePlayback"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+
+        // Swipe back to SPM
+        app.swipeDown()
+        XCTAssertTrue(bpm.waitForExistence(timeout: 3))
     }
 }

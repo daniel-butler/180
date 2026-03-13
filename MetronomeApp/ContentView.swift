@@ -24,6 +24,7 @@ struct ContentView: View {
             VStack(spacing: 8) {
                 Text("\(engine.bpm)")
                     .font(.system(size: 80, weight: .bold))
+                    .accessibilityIdentifier("bpmDisplay")
                     .onTapGesture {
                         bpmText = "\(engine.bpm)"
                         showBPMAlert = true
@@ -53,6 +54,7 @@ struct ContentView: View {
                         )
                 }
                 .disabled(!engine.canDecrementBPM)
+                .accessibilityIdentifier("decrementBPM")
 
                 Spacer()
 
@@ -68,6 +70,7 @@ struct ContentView: View {
                         )
                 }
                 .disabled(!engine.canIncrementBPM)
+                .accessibilityIdentifier("incrementBPM")
             }
             .padding(.horizontal, 40)
 
@@ -98,6 +101,7 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("togglePlayback")
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
         }
